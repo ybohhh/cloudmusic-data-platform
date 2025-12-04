@@ -23,27 +23,13 @@ CloudMusic is a comprehensive data platform simulating a Spotify-scale music str
 ---
 
 ## 📐 Architecture
-```
-┌──────────────────────────────────────────────┐
-│      Application Layer (Wisdom)              │
-│  Tableau Dashboards | Neo4j Recommendations  │
-└─────────────────┬────────────────────────────┘
-                  │
-┌─────────────────▼────────────────────────────┐
-│    Analytics Layer (Knowledge)               │
-│  Redshift Warehouse + dbt Transformations    │
-└─────────────────┬────────────────────────────┘
-                  │
-┌─────────────────▼────────────────────────────┐
-│    ETL Layer (Information)                   │
-│  Airflow + Great Expectations + S3 Data Lake │
-└───┬─────────┬─────────┬─────────┬────────────┘
-    │         │         │         │
-┌───▼───┐ ┌──▼────┐ ┌──▼───┐ ┌──▼──────┐
-│MySQL  │ │MongoDB│ │Neo4j │ │S3 (Raw) │
-│(OLTP) │ │(Docs) │ │(Graph│ │Unstruc.)│
-└───────┘ └───────┘ └──────┘ └─────────┘
-```
+
+![CloudMusic Architecture](docs/Architecture_figure.png)
+
+The platform follows a **Medallion Architecture** (Bronze → Silver → Gold) pattern:
+1.  **Ingestion:** Raw logs flow from Kafka to **S3 Data Lake (Bronze)**.
+2.  **Processing:** **AWS Glue/Redshift** cleans and structures data into the **Silver Layer**.
+3.  **Intelligence:** **Machine Learning (SageMaker)** and Aggregations create the **Gold Layer** for dashboards and the recommendation API.
 
 ---
 
@@ -58,6 +44,7 @@ CloudMusic is a comprehensive data platform simulating a Spotify-scale music str
 | **Data Warehouse** | AWS Redshift | OLAP analytics with star schema |
 | **Orchestration** | Apache Airflow 2.7 | Workflow management and scheduling |
 | **Transformation** | dbt Core 1.6 | Analytics engineering and data modeling |
+| **Machine Learning** | Scikit-Learn | Random Forest,Song popularity prediction & feature engineering |
 | **Data Quality** | Great Expectations | Automated validation and testing |
 | **Visualization** | Tableau Public | Executive dashboards and reporting |
 
@@ -154,10 +141,10 @@ airflow standalone
 
 ## 📊 Key Features
 
-### 1. Normalized Relational Schema (3NF)
-- ✅ Complete ER modeling with Erwin Data Modeler
-- ✅ Strategic denormalization for performance (documented trade-offs)
-- ✅ Partitioned tables for 10M+ streaming events
+### 1. Advanced Physical Design
+- ✅ **Partitioning Strategy:** Range partitioning by YEAR on `streaming_events` (10M+ rows), enabling **Partition Pruning**.
+- ✅ **Materialized Views:** Simulated summary tables for real-time leaderboards (milliseconds vs. seconds).
+- ✅ **Indexing:** Composite & Full-Text indexes optimized for specific query workloads.
 
 ### 2. Multi-Model Integration
 - ✅ Common key pattern (`user_id`) across all systems
@@ -179,6 +166,11 @@ airflow standalone
 - ✅ 40% better CTR vs. SQL-only baseline
 - ✅ Real-time recommendation API
 
+### 6. Predictive Analytics (Machine Learning)
+- ✅ **Hit Song Prediction:** Random Forest Regressor trained on audio features (Tempo, Energy) and early stream velocity.
+- ✅ **Feature Engineering:** Automated extraction of 20+ features from Redshift/S3.
+- ✅ **Closed-Loop AI:** Predictions are written back to MySQL to automate playlist curation.
+
 ---
 
 ## 📈 Performance Metrics
@@ -190,6 +182,7 @@ airflow standalone
 | Daily ETL runtime | <2 hours | Partitioned tables + incremental dbt |
 | Dashboard refresh | <5 seconds | Materialized aggregates in Redshift |
 | Recommendation API | <200ms | Neo4j graph traversal + caching |
+| ML Model Accuracy	| RMSE: 12.7 | Random Forest with Hyperparameter Tuning |
 
 ---
 

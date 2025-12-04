@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  # 1. MySQL (OLTP)
+  mysql:
+    image: mysql:8.0
+    container_name: cloudmusic_mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: cloudmusic_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+      # Mount your DDL script to auto-initialize!
+      - ../../database/mysql/schema.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # 2. MongoDB (Document Store)
+  mongodb:
+    image: mongo:6.0
+    container_name: cloudmusic_mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - "27017:27017"
+
+  # 3. Neo4j (Graph DB)
+  neo4j:
+    image: neo4j:5.5
+    container_name: cloudmusic_neo4j
+    environment:
+      NEO4J_AUTH: neo4j/password
+    ports:
+      - "7474:7474" # HTTP
+      - "7687:7687" # Bolt
+
+  # 4. Airflow (Simplified for demo)
+  airflow-webserver:
+    image: apache/airflow:2.7.0
+    command: webserver
+    ports:
+      - "8080:8080"
+    environment:
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=sqlite:////root/airflow/airflow.db
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
